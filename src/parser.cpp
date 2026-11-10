@@ -325,12 +325,17 @@ std::unique_ptr<Stmt> Parser::parse_if_statement() {
     SourceLocation start_loc = previous().span.start;
     auto condition = parse_expression();
 
+    const bool indented_body = check(TokenType::COLON) &&
+        current_ + 1 < tokens_.size() && tokens_[current_ + 1].type != TokenType::LBRACE;
+
     auto then_branch = parse_body_statement(start_loc.column);
     std::unique_ptr<Stmt> else_branch = nullptr;
 
-    if (match(TokenType::KEYWORD_ELIF)) {
+    // Dedented alternatives belong to an enclosing if, not its last nested if.
+    const bool aligned_alternative = !indented_body || peek().span.start.column == start_loc.column;
+    if (aligned_alternative && match(TokenType::KEYWORD_ELIF)) {
         else_branch = parse_if_statement();
-    } else if (match(TokenType::KEYWORD_ELSE)) {
+    } else if (aligned_alternative && match(TokenType::KEYWORD_ELSE)) {
         if (match(TokenType::KEYWORD_IF)) {
             else_branch = parse_if_statement();
         } else {

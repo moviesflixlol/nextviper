@@ -17,6 +17,25 @@ def subprocess_limits():
 
 
 class ReadinessRegressions(unittest.TestCase):
+    def test_dedented_else_and_elif_belong_to_the_outer_if(self):
+        out = self.native_equivalent('''let mut owner = "owner"
+for candidate in ["guest", "owner", "other"]:
+    if owner == "owner":
+        if candidate == owner:
+            print(candidate)
+    elif candidate == "guest":
+        print("wrong elif")
+    else:
+        print("wrong else")
+if false:
+    if false:
+        print("wrong inner")
+else:
+    print("outer else")
+if true { if false { print("wrong brace") } } else { print("wrong brace else") }
+''')
+        self.assertEqual(out, 'owner\nouter else\n')
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='nextviper-regression-')
         self.work = Path(self.temp.name)
