@@ -36,6 +36,7 @@ class HttpServerContract(unittest.TestCase):
                           'app.static("/static", ' + json.dumps(str(public)) + ')\n'
                           'app.get("/health", fn(req) => {"ok": true})\n'
                           'app.get("/query", fn(req) => req.query)\n'
+                          'app.get("/peer", fn(req) => {"remote_addr": req.remote_addr})\n'
                           'app.post("/echo", fn(req) => {"status": 201, "body": req.json()})\n'
                           'app.get("/error", fn(req) { assert(false, "PRIVATE_ERROR_MARKER") })\n'
                           'app.get("/header", fn(req) => {"status": 200, "body": "x", "headers": {"X-Test": "a\\r\\nInjected: yes"}})\n'
@@ -73,6 +74,14 @@ class HttpServerContract(unittest.TestCase):
         connection.request(method, path, body=body)
         response = connection.getresponse()
         return response.status, response.read()
+
+    def test_socket_peer_address_cannot_be_replaced_by_forwarded_headers(self):
+        connection = http.client.HTTPConnection('127.0.0.1', self.port, timeout=10)
+        self.addCleanup(connection.close)
+        connection.request('GET', '/peer', headers={'X-Forwarded-For': '198.51.100.99'})
+        response = connection.getresponse()
+        self.assertEqual(response.status, 200)
+        self.assertEqual(json.loads(response.read())['remote_addr'], '127.0.0.1')
 
     def raw(self, payload, fragments=None):
         with socket.create_connection(('127.0.0.1', self.port), timeout=10) as connection:

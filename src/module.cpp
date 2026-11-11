@@ -2579,6 +2579,10 @@ Value ModuleManager::create_net_module() {
                                 req_obj["query"] = Value::make_object(std::move(query_map));
                                 req_obj["params"] = Value::make_object(std::move(params_map));
                                 req_obj["headers"] = Value::make_object(std::move(headers_map));
+                                char remote_ip[INET_ADDRSTRLEN]{};
+                                if (inet_ntop(AF_INET, &client_addr.sin_addr, remote_ip, sizeof(remote_ip))) {
+                                    req_obj["remote_addr"] = Value::make_string(remote_ip);
+                                }
                                 req_obj["body"] = Value::make_string(body);
                                 req_obj["json"] = Value::make_native_fn("json", 0, [body](const std::vector<Value>&, SourceSpan s) -> Value {
                                     try {
